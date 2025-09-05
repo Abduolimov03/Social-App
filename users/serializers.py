@@ -2,7 +2,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from shared.utility import check_email_or_phone_number
 from .models import CustomUser, CodeVerified, VIA_EMAIL, VIA_PHONE
-
+from django.core.mail import send_mail
+from django.conf import settings
 
 class SignUnSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(read_only=True)
@@ -21,10 +22,16 @@ class SignUnSerializer(serializers.ModelSerializer):
         user = super(SignUnSerializer, self).create(validated_data)
         if user.auth_type == VIA_EMAIL:
             code = user.create_verify_code(VIA_EMAIL)
-            # send_to_mail(user.email, code)
+            send_mail(
+                subject="Tasdiqlash kodi",
+                message=f"Sizning tasdiqlash kodingiz: {code}",
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
         elif user.auth_type == VIA_PHONE:
             code = user.create_verify_code(VIA_PHONE)
-            # send_to_phone(user.phone, code)
+            # send_phone(user.phone, code)
         user.save()
         return user
 
