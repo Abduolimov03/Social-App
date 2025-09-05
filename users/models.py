@@ -51,12 +51,15 @@ class CustomUser(BaseModel, AbstractUser):
         return self.username
 
     def create_verify_code(self, verify_type):
+        if not self.pk:
+            self.save()
         code = random.randint(1000, 9999)
         CodeVerified.objects.create(
             code=code,
             user=self,
             verify_type=verify_type
         )
+        return code
 
     def check_username(self):
         if not self.username:
@@ -89,8 +92,9 @@ class CustomUser(BaseModel, AbstractUser):
         self.hashing_pass()
 
     def save(self, *args, **kwargs):
-        self.clean()
         super(CustomUser, self).save(*args, **kwargs)
+        self.clean()
+        super(CustomUser, self).save(update_fields=['username', 'email', 'password'])
 
 
 class CodeVerified(BaseModel):
