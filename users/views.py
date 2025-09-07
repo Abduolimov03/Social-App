@@ -9,6 +9,8 @@ from .models import CustomUser, CODE_VERIFIED, NEW, VIA_EMAIL, VIA_PHONE
 from rest_framework.generics import ListCreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
 # Create your views here.
 
 
@@ -88,6 +90,23 @@ class GetNewCodeVerify(APIView):
             }
             raise ValidationError(data)
         return True
+
+
+class TokenRefreshApi(APIView):
+    permission_classes = [AllowAny, ]
+    def post(self, request):
+        data = request.data
+        try:
+            token = RefreshToken(data['refresh'])
+            return Response({
+                "access":str(token.access_token),
+                "status":status.HTTP_201_CREATED
+            })
+        except Exception as e:
+            return Response({
+                "err": str(e),
+                "status":status.HTTP_400_BAD_REQUEST
+            })
 
 
 
