@@ -12,8 +12,7 @@ ORDINARY_USER, MANAGER, ADMIN = ('ordinary_user', 'manager', 'admin')
 VIA_EMAIL, VIA_PHONE = ('via_email', 'via_phone')
 NEW, CODE_VERIFIED, DONE, PHOTO_DONE = ('new', 'code_verified', 'done', 'photo_done')
 
-EXPIRATION_PHONE = 2
-EXPIRATION_EMAIL = 5
+
 
 
 class CustomUser(BaseModel, AbstractUser):
