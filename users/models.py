@@ -69,14 +69,17 @@ class CustomUser(BaseModel, AbstractUser):
 
     def check_email(self):
         if self.email:
-            self.email = self.email.lower()
+            normalize_email = self.email.lower()
+            self.email = normalize_email
 
     def check_pass(self):
         if not self.password:
-            self.password = f"pass{uuid.uuid4().__str__().split('-')[-1]}"
+            temp_password = f'password-{uuid.uuid4().__str__().split("-")[-1]}'
+            self.password = temp_password
 
     def hashing_pass(self):
-        self.set_password(self.password)
+        if not self.password.startswith('pbkdf2_sha256'):
+            self.set_password(self.password)
 
     def token(self):
         token = RefreshToken.for_user(self)
@@ -85,17 +88,20 @@ class CustomUser(BaseModel, AbstractUser):
             'access_token': str(token.access_token)
         }
 
+
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super(CustomUser, self).save(*args, **kwargs)
+
     def clean(self):
-        self.check_username()
         self.check_email()
+        self.check_username()
         self.check_pass()
         self.hashing_pass()
 
-    def save(self, *args, **kwargs):
-        super(CustomUser, self).save(*args, **kwargs)
-        self.clean()
-        super(CustomUser, self).save(update_fields=['username', 'email', 'password'])
-
+EXPIRATION_PHONE = 2
+EXPIRATION_EMAIL = 5
 
 class CodeVerified(BaseModel):
     AUTH_TYPE = (
