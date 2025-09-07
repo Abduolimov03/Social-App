@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import render
-from .serializers import SignUnSerializer, ChangeInfoUserSerializer
+from .serializers import SignUnSerializer, ChangeInfoUserSerializer, CreatePhotoUserSerializer
 from .models import CustomUser, CODE_VERIFIED, NEW, VIA_EMAIL, VIA_PHONE
 from rest_framework.generics import ListCreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -131,5 +131,20 @@ class ChangeInfoUserApi(UpdateAPIView):
         data = {
             'msg':"Malumotlar yangilandi",
             'status':status.HTTP_200_OK
+        }
+        return Response(data)
+
+class CreatePhotoUserApi(UpdateAPIView):
+    serializer_class = CreatePhotoUserSerializer
+    http_method_names = ['patch']
+
+    def get_object(self):
+        return self.request.user
+
+    def partial_update(self, request, *args, **kwargs):
+        super(CreatePhotoUserApi, self).partial_update(request, *args, **kwargs)
+        data = {
+            'msg':"Rasm yaratildi",
+            'status':status.HTTP_201_CREATED
         }
         return Response(data)

@@ -1,4 +1,4 @@
-from .views import SignUpView, VerifyCodeApiView, GetNewCodeVerify, ChangeInfoUserApi, TokenRefreshApi
+from .views import SignUpView, VerifyCodeApiView, GetNewCodeVerify, ChangeInfoUserApi, TokenRefreshApi, CreatePhotoUserApi
 from django.urls import path
 
 urlpatterns = [
@@ -7,5 +7,6 @@ urlpatterns = [
     path('new-verify/', GetNewCodeVerify.as_view()),
     path('change-info/', ChangeInfoUserApi.as_view()),
     path("token-refresh/", TokenRefreshApi.as_view()),
+    path('create-photo/', CreatePhotoUserApi.as_view()),
 
 ]
