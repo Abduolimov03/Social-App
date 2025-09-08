@@ -1,6 +1,9 @@
 from ckeditor_uploader.views import upload
+from django.core.validators import FileExtensionValidator
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from urllib3.util.connection import allowed_gai_family
+
 from shared.utility import check_email_or_phone_number, valid_username
 from .models import CustomUser, CodeVerified, VIA_EMAIL, VIA_PHONE, CODE_VERIFIED, DONE, PHOTO_DONE
 from django.core.mail import send_mail
@@ -112,7 +115,7 @@ class ChangeInfoUserSerializer(serializers.ModelSerializer):
         return instance
 
 class CreatePhotoUserSerializer(serializers.ModelSerializer):
-    photo = serializers.ImageField(required=False)
+    validators = [FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])]
 
     class Meta:
         model = CustomUser
