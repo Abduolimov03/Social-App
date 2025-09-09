@@ -126,7 +126,7 @@ class CreatePhotoUserSerializer(serializers.ModelSerializer):
         if photo:
             instance.photo = photo
 
-        if instance.auth_status == CODE_VERIFIED:
+        if instance.auth_status == DONE:
             instance.auth_status = PHOTO_DONE
         instance.save()
         return instance
