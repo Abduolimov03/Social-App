@@ -1,6 +1,6 @@
 from ckeditor_uploader.views import upload
 from django.core.validators import FileExtensionValidator
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from urllib3.util.connection import allowed_gai_family
 
@@ -93,6 +93,11 @@ class ChangeInfoUserSerializer(serializers.ModelSerializer):
         if data.get('password') != data.get('password_confirm'):
             raise ValidationError('parollar mos emas')
 
+        # current_user = CustomUser.objects.filter(username=data.get('username')).exists()
+        #
+        # if current_user:
+        #     raise ValidationError('Bu username mavjud!')
+
         if not valid_username(data.get("username")):
             raise ValidationError("Username mukamal emas")
 
@@ -114,19 +119,25 @@ class ChangeInfoUserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-class CreatePhotoUserSerializer(serializers.ModelSerializer):
-    validators = [FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])]
-
-    class Meta:
-        model = CustomUser
-        fields = ["id", "photo"]
+class CreatePhotoUserSerializer(serializers.Serializer):
+    photo = serializers.ImageField(
+        required=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])]
+    )
 
     def update(self, instance, validated_data):
-        photo = validated_data.get("photo", None)
-        if photo:
+        photo = validated_data.get("photo")
+        if photo and instance.auth_status in [DONE, PHOTO_DONE]:
             instance.photo = photo
-
-        if instance.auth_status == DONE:
             instance.auth_status = PHOTO_DONE
-        instance.save()
+            instance.save()
+        else:
+            raise ValidationError(
+                {
+                    'msg': 'Siz hali toliq ro‘yxatdan o‘tmadingiz',
+                    'status': status.HTTP_400_BAD_REQUEST
+                }
+            )
         return instance
+
+

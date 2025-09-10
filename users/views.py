@@ -143,8 +143,13 @@ class CreatePhotoUserApi(UpdateAPIView):
 
     def partial_update(self, request, *args, **kwargs):
         super(CreatePhotoUserApi, self).partial_update(request, *args, **kwargs)
+        user = request.user
         data = {
             'msg':"Rasm yaratildi",
-            'status':status.HTTP_201_CREATED
+            'auth_status':user.auth_status,
+            'refresh_token':user.token()['refresh_token'],
+            'access_token':user.token()['access'],
+            'status': status.HTTP_201_CREATED
+
         }
         return Response(data)
