@@ -1,13 +1,15 @@
 from ckeditor_uploader.views import upload
+from django.contrib.auth import authenticate
 from django.core.validators import FileExtensionValidator
+from django.db.models import Q
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
-from urllib3.util.connection import allowed_gai_family
-
+from rest_framework_simplejwt.serializers import TokenObtainSerializer
 from shared.utility import check_email_or_phone_number, valid_username
-from .models import CustomUser, CodeVerified, VIA_EMAIL, VIA_PHONE, CODE_VERIFIED, DONE, PHOTO_DONE
+from .models import CustomUser, CodeVerified, VIA_EMAIL, VIA_PHONE, CODE_VERIFIED, DONE, PHOTO_DONE, NEW
 from django.core.mail import send_mail
 from django.conf import settings
+from rest_framework_simplejwt.tokens import RefreshToken
 
 class SignUnSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(read_only=True)
@@ -82,7 +84,7 @@ class SignUnSerializer(serializers.ModelSerializer):
         return data
 
 
-class ChangeInfoUserSerializer(serializers.ModelSerializer):
+class ChangeInfoUserSerializer(serializers.Serializer):
     first_name = serializers.CharField(write_only=True, required=True)
     last_name = serializers.CharField(write_only=True, required=True)
     username = serializers.CharField(write_only=True, required=True)
@@ -119,7 +121,7 @@ class ChangeInfoUserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-class CreatePhotoUserSerializer(serializers.Serializer):
+class CreatePhotoUserSerializer(TokenObtainSerializer):
     photo = serializers.ImageField(
         required=True,
         validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])]
@@ -139,5 +141,71 @@ class CreatePhotoUserSerializer(serializers.Serializer):
                 }
             )
         return instance
+
+class LoginSerializer(serializers.Serializer):
+    password = serializers.CharField(max_length=124)
+
+    def __init__(self, *args, **kwargs):
+        super(LoginSerializer, self).__init__(*args, **kwargs)
+        self.fields['user_input'] = serializers.CharField(required=True)
+        self.fields['username'] = serializers.CharField(required=False, read_only=True)
+
+    def auth_validate(self, data):
+        user_input = data.get('user_input')
+        if valid_username(user_input):
+            username = user_input
+        elif check_email_or_phone_number(user_input) == 'email':
+            user = CustomUser.objects.filter(email__iexact=user_input).first()
+            username = user.username
+        elif check_email_or_phone_number(user_input) == 'phone_number':
+            user = CustomUser.objects.filter(phone_number__iexact=user_input).first()
+            username = user.username
+        else:
+            raise ValidationError('Siz emael/usename/phone xato kiriting')
+
+        user = authenticate(username=username, password=data.get('password'))
+        if user is None:
+            raise ValidationError('Siz notogri login/parol kiritdingiz')
+        self.user = user
+
+    def validate(self, data):
+        self.auth_validate(data)
+        refresh_token = RefreshToken.for_user(self.user)
+        data = {
+            'msg':'Login qildingiz',
+            'refresh_token': str(refresh_token),
+            'access_token': str(refresh_token.access_token),
+            'status': status.HTTP_200_OK
+
+        }
+        return data
+
+class LogOutSerializer(serializers.Serializer):
+    refresh = serializers.CharField(max_length=540)
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    phone_email = serializers.CharField(required=True, write_only=True)
+
+    def auth_validate(self, data):
+        user_input = data.get('phone_email')
+        user = CustomUser.objects.filter(Q(email__iexact=user_input) | Q(phone_number=user_input)).first()
+        if user is None:
+            raise ValidationError('Siz notogri email yoki telefon raqam kiritdingiz ')
+
+        if user.auth_status in [NEW, CODE_VERIFIED]:
+            raise ValidationError('siz hali toliq royxatdan otmadingiz')
+
+        data['user'] = user
+
+        return data
+
+    def validate(self, data):
+        self.auth_validate(data)
+        super(ForgotPasswordSerializer, self).validate(data)
+        return data
+
+class ResetPasswordSerializer(serializers.Serializer):
+    pass
 
 

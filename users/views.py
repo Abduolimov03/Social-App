@@ -4,13 +4,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import render
-from .serializers import SignUnSerializer, ChangeInfoUserSerializer, CreatePhotoUserSerializer
+from .serializers import SignUnSerializer, ChangeInfoUserSerializer, CreatePhotoUserSerializer, LoginSerializer, \
+    LogOutSerializer, ForgotPasswordSerializer
 from .models import CustomUser, CODE_VERIFIED, NEW, VIA_EMAIL, VIA_PHONE
 from rest_framework.generics import ListCreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework_simplejwt.views import TokenObtainPairView
 # Create your views here.
 
 
@@ -153,3 +154,29 @@ class CreatePhotoUserApi(UpdateAPIView):
 
         }
         return Response(data)
+
+
+class LoginApi(TokenObtainPairView):
+    serializer_class = LoginSerializer
+    permission_classes = [AllowAny, ]
+
+
+class LogOutApi(APIView):
+    def post(self, request):
+        serializer = LogOutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            token = RefreshToken(serializer.data('refresh'))
+            token.blacklist()
+            return Response({'msg':'Siz dasturdan chiqdingiz', 'status':status.HTTP_200_OK})
+        except Exception as e:
+            raise ValidationError(e)
+
+class ForgotPasswordApi(APIView):
+    permission_classes = [AllowAny, ]
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({
+            "data":serializer.data
+        })
