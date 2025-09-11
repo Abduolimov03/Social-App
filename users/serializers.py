@@ -10,8 +10,12 @@ from .models import CustomUser, CodeVerified, VIA_EMAIL, VIA_PHONE, CODE_VERIFIE
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
+import requests
+from shared.sms_service import send_phone
 
-class SignUnSerializer(serializers.ModelSerializer):
+
+
+class SignUpSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(read_only=True)
     auth_type = serializers.CharField(required=False, read_only=True)
     auth_status = serializers.CharField(required=False, read_only=True)
@@ -25,7 +29,7 @@ class SignUnSerializer(serializers.ModelSerializer):
         fields = ['id', 'auth_type', 'auth_status']
 
     def create(self, validated_data):
-        user = super(SignUnSerializer, self).create(validated_data)
+        user = super(SignUpSerializer, self).create(validated_data)
         if user.auth_type == VIA_EMAIL:
             code = user.create_verify_code(VIA_EMAIL)
             send_mail(
@@ -38,7 +42,7 @@ class SignUnSerializer(serializers.ModelSerializer):
             print(f"VIA_EMAIL CODE: {code}")
         elif user.auth_type == VIA_PHONE:
             code = user.create_verify_code(VIA_PHONE)
-            # send_phone(user.phone, code)
+            send_phone(user.phone_number, code)
             print(f"VIA_PHONE CODE: {code}")
         user.save()
         return user

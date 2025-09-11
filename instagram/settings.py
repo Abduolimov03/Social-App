@@ -163,4 +163,5 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,         # eski refreshni blacklist qiladi
 
 }
+ESKIZ_TOKEN = "sizning_eskiz_tokeningiz" #Eskiz saytidan olingan token ni qoyish kerak
 

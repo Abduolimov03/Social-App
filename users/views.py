@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import render
-from .serializers import SignUnSerializer, ChangeInfoUserSerializer, CreatePhotoUserSerializer, LoginSerializer, \
+from .serializers import SignUpSerializer, ChangeInfoUserSerializer, CreatePhotoUserSerializer, LoginSerializer, \
     LogOutSerializer, ForgotPasswordSerializer
 from .models import CustomUser, CODE_VERIFIED, NEW, VIA_EMAIL, VIA_PHONE
 from rest_framework.generics import ListCreateAPIView, UpdateAPIView
@@ -17,7 +17,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 class SignUpView(ListCreateAPIView):
     queryset = CustomUser.objects.all()
-    serializer_class = SignUnSerializer
+    serializer_class = SignUpSerializer
     permission_classes = [AllowAny, ]
 
 
