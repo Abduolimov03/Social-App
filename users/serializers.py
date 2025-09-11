@@ -83,7 +83,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        data = super(SignUnSerializer, self).to_representation(instance)
+        data = super(SignUpSerializer, self).to_representation(instance)
         data.update(instance.token())
         return data
 
@@ -199,6 +199,24 @@ class ForgotPasswordSerializer(serializers.Serializer):
 
         if user.auth_status in [NEW, CODE_VERIFIED]:
             raise ValidationError('siz hali toliq royxatdan otmadingiz')
+
+
+
+        if check_email_or_phone_number(user_input) == 'email':
+            code = user.create_verify_code(VIA_EMAIL)
+            send_mail(
+                subject="Parolni tiklash kodi",
+                message=f"Sizning tiklash kodingiz: {code}",
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+            print(f"email uchun reset code {code}")
+
+        if check_email_or_phone_number(user_input) == 'phone_number':
+            code = user.create_verify_code(VIA_PHONE)
+            send_phone(user.phone_number, code)
+            print(f"phone number uchun code yuborildi {code}")
 
         data['user'] = user
 
