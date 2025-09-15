@@ -230,5 +230,25 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 
 
+class UpdatePasswordSerializer(serializers.Serializer):
+    old_pass  = serializers.CharField(required=True)
+    new_pass = serializers.CharField(required=True)
+    confirm_new_pass = serializers.CharField(required=True)
+
+    def validate(self, data):
+        old_pass = data.get('old_pass')
+        new_pass = data.get('new_pass')
+        confirm_new_pass = data.get('confirm_new_pass')
+
+        if new_pass == old_pass:
+            raise ValidationError('Yangi va eski parollar bir-xil bolmasligi kerak')
+        elif confirm_new_pass != new_pass:
+            raise ValidationError('Yangi parollar mos emas')
+        return data
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('new_pass')
+        instance.set_password(password)
+        super(UpdatePasswordSerializer, self).update(validated_data)
 
 

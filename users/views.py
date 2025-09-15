@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from rest_framework import status
 from rest_framework.response import Response
@@ -6,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from django.shortcuts import render
 from shared.utility import check_email_or_phone_number
 from .serializers import SignUpSerializer, ChangeInfoUserSerializer, CreatePhotoUserSerializer, LoginSerializer, \
-    LogOutSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
+    LogOutSerializer, ForgotPasswordSerializer, ResetPasswordSerializer, UpdatePasswordSerializer
 from .models import CustomUser, CODE_VERIFIED, NEW, VIA_EMAIL, VIA_PHONE
 from rest_framework.generics import ListCreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -219,5 +221,26 @@ class ResetPasswordApi(APIView):
         }
         return Response(data)
 
+class UpdatePasswordApi(APIView):
+    permission_classes = [IsAuthenticated, ]
 
+    def put(self, request):
+        serializer = UpdatePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+
+
+        confirm_user = authenticate(username=user.username, password=serializer.validated_data.get('old_password'))
+
+        if not confirm_user:
+            raise ValidationError('eski parol notogri')
+
+        user.set_password(serializer.validated_data.get('new_pass'))
+        user.save()
+
+        data = {
+            'msg':'Parol ozgartirildi',
+            'status':status.HTTP_200_OK
+        }
+        return Response(data)
 
