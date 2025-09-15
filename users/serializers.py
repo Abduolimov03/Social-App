@@ -201,23 +201,6 @@ class ForgotPasswordSerializer(serializers.Serializer):
             raise ValidationError('siz hali toliq royxatdan otmadingiz')
 
 
-
-        if check_email_or_phone_number(user_input) == 'email':
-            code = user.create_verify_code(VIA_EMAIL)
-            send_mail(
-                subject="Parolni tiklash kodi",
-                message=f"Sizning tiklash kodingiz: {code}",
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-            print(f"email uchun reset code {code}")
-
-        if check_email_or_phone_number(user_input) == 'phone_number':
-            code = user.create_verify_code(VIA_PHONE)
-            send_phone(user.phone_number, code)
-            print(f"phone number uchun code yuborildi {code}")
-
         data['user'] = user
 
         return data
@@ -228,6 +211,24 @@ class ForgotPasswordSerializer(serializers.Serializer):
         return data
 
 class ResetPasswordSerializer(serializers.Serializer):
-    pass
+    code = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        confirm_password = attrs.get('confirm_password')
+        if password != confirm_password:
+            raise ValidationError('Parollar mos emas')
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop(' password')
+        instance.set_password(password)
+        super(ResetPasswordSerializer, self).update(validated_data)
+
+
+
 
 

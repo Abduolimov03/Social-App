@@ -4,8 +4,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.shortcuts import render
+from shared.utility import check_email_or_phone_number
 from .serializers import SignUpSerializer, ChangeInfoUserSerializer, CreatePhotoUserSerializer, LoginSerializer, \
-    LogOutSerializer, ForgotPasswordSerializer
+    LogOutSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
 from .models import CustomUser, CODE_VERIFIED, NEW, VIA_EMAIL, VIA_PHONE
 from rest_framework.generics import ListCreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -177,6 +178,46 @@ class ForgotPasswordApi(APIView):
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response({
-            "data":serializer.data
-        })
+
+        phone_email = serializer.validated_data.get('phone_email')
+        user = serializer.validated_data.get('user')
+
+        if check_email_or_phone_number(phone_email) == 'email':
+            code = user.create_verify_code(VIA_EMAIL)
+            print(code)
+        elif check_email_or_phone_number(phone_email) == 'phone':
+            code = user.create_verify_code(VIA_PHONE)
+            print(code)
+        else:
+            raise ValidationError('Siz notogi email/phone kiritdingiz')
+
+        data = {
+            'msg':'Kod yuborildi',
+            'status':status.HTTP_200_OK,
+            'access':user.token()['access_token'],
+            'refresh_token':user.token()['refresh_token']
+
+        }
+        return Response(data)
+
+class ResetPasswordApi(APIView):
+    permission_classes = [IsAuthenticated, ]
+    def put(self, request):
+        user = request.user
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        code = serializer.validated_data.get('code')
+        verify = user.verify_codes.filter(code=code, code_status=False, expiration_time__gte=datetime.now( ))
+        if not verify.exists():
+            raise ValidationError('Code amal qilsh muddati tugagan')
+        user.set_password(serializer.validated_data.get('password'))
+        user.save()
+        data = {
+            'msg':'Parol mavaffaqiyatli ozgartirildi',
+            'status':status.HTTP_200_OK
+        }
+        return Response(data)
+
+
+

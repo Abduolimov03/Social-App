@@ -37,7 +37,7 @@ class CustomUser(BaseModel, AbstractUser):
     auth_type = models.CharField(max_length=31, choices=AUTH_TYPE)
     user_role = models.CharField(max_length=31, choices=USER_ROLE, default=ORDINARY_USER)
     auth_status = models.CharField(max_length=31, choices=AUTH_STATUS, default=NEW)
-    email = models.EmailField(unique=True, blank=True, null=True)  # vergul olib tashlandi
+    email = models.EmailField(unique=True, blank=True, null=True)
     phone_number = models.CharField(max_length=13, unique=True, blank=True, null=True)
     photo = models.ImageField(
         upload_to='users_photo',
