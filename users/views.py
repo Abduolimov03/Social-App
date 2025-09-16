@@ -230,17 +230,28 @@ class UpdatePasswordApi(APIView):
         user = request.user
 
 
-        confirm_user = authenticate(username=user.username, password=serializer.validated_data.get('old_password'))
+        # confirm_user = authenticate(username=user.username, password=serializer.validated_data.get('old_password'))
 
-        if not confirm_user:
-            raise ValidationError('eski parol notogri')
+        if not user.check_password(serializer.validated_data.get('old_pass')):
+            raise ValidationError('Eski parol noto‘g‘ri!')
 
         user.set_password(serializer.validated_data.get('new_pass'))
         user.save()
 
-        data = {
-            'msg':'Parol ozgartirildi',
-            'status':status.HTTP_200_OK
-        }
-        return Response(data)
+        return Response({
+            'msg': 'Parol o‘zgartirildi',
+            'status': status.HTTP_200_OK
+        })
+
+        # if not confirm_user:
+        #     raise ValidationError('eski parol notogri')
+        #
+        # user.set_password(serializer.validated_data.get('new_pass'))
+        # user.save()
+        #
+        # data = {
+        #     'msg':'Parol ozgartirildi',
+        #     'status':status.HTTP_200_OK
+        # }
+        # return Response(data)
 
