@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post, PostMedia
+from .models import Post, PostMedia, PostLike, Comment
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
@@ -29,3 +29,39 @@ class PostCreateSerializer(serializers.ModelSerializer):
             )
 
         return post
+
+
+
+class PostMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostMedia
+        fields = ['id', 'file', 'file_type']
+
+
+class PostListSerializer(serializers.ModelSerializer):
+    media = PostMediaSerializer(many=True, read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
+    user = serializers.StringRelatedField()
+
+    class Meta:
+        model = Post
+        fields = [
+            'id',
+            'user',
+            'caption',
+            'location',
+            'is_active',
+            'created_at',
+            'media',
+            'likes_count',
+            'comments_count'
+        ]
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_comments_count(self, obj):
+        return obj.comments.count()
+
+
