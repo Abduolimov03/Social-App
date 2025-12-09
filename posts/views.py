@@ -6,6 +6,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework import permissions
 from .models import Post
 from .serializers import PostListSerializer
+from .models import  PostLike
 
 
 class PostCreateApi(APIView):
@@ -34,3 +35,27 @@ class PostListApi(ListAPIView):
             .prefetch_related("media", "likes", "comments")
             .order_by("-created_at")
         )
+
+
+
+
+
+class PostLikeToggleApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, post_id):
+        user = request.user
+
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({"error": "Post not found"}, status=404)
+
+        like_obj = PostLike.objects.filter(post=post, user=user).first()
+
+        if like_obj:
+            like_obj.delete()
+            return Response({"liked": False, "message": "Unliked"}, status=200)
+        else:
+            PostLike.objects.create(post=post, user=user)
+            return Response({"liked": True, "message": "Liked"}, status=201)
