@@ -105,3 +105,32 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             parent=parent
         )
         return comment
+
+
+
+class CommentReplySerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'text', 'created_at']
+
+
+class CommentListSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    replies = CommentReplySerializer(many=True, read_only=True)
+    likes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = [
+            'id',
+            'user',
+            'text',
+            'created_at',
+            'likes_count',
+            'replies'
+        ]
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()

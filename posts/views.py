@@ -1,12 +1,17 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from .serializers import PostCreateSerializer
+from .serializers import PostCreateSerializer, CommentListSerializer
 from rest_framework.generics import ListAPIView
-from .models import Post
+from .models import Post, Comment, CommentLike
 from .serializers import PostListSerializer
 from .models import  PostLike
 from .serializers import CommentCreateSerializer
+from .pagination import CommentPagination
+from rest_framework.exceptions import PermissionDenied
+
+
+
 
 
 
@@ -83,3 +88,73 @@ class CommentCreateApi(APIView):
             status=status.HTTP_201_CREATED
         )
 
+
+    serializer_class = CommentListSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        post_id = self.kwargs.get('post_id')
+        return (
+            Comment.objects
+            .filter(post_id=post_id, parent__isnull=True)
+            .select_related('user')
+            .prefetch_related('replies')
+            .order_by('created_at')
+        )
+
+
+
+class CommentListApi(ListAPIView):
+    serializer_class = CommentListSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = CommentPagination
+
+    def get_queryset(self):
+        post_id = self.kwargs.get('post_id')
+        return (
+            Comment.objects
+            .filter(post_id=post_id, parent__isnull=True)
+            .select_related('user')
+            .prefetch_related('replies')
+            .order_by('created_at')
+        )
+
+
+class CommentDeleteApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, comment_id):
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"error": "Comment topilmadi"}, status=404)
+
+        if comment.user != request.user:
+            raise PermissionDenied("Siz bu commentni o‘chira olmaysiz")
+
+        comment.delete()
+        return Response(
+            {"message": "Comment o‘chirildi"},
+            status=status.HTTP_200_OK
+        )
+
+
+class CommentLikeToggleApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, comment_id):
+        user = request.user
+
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"error": "Comment topilmadi"}, status=404)
+
+        like = CommentLike.objects.filter(comment=comment, user=user).first()
+
+        if like:
+            like.delete()
+            return Response({"liked": False}, status=200)
+        else:
+            CommentLike.objects.create(comment=comment, user=user)
+            return Response({"liked": True}, status=201)
