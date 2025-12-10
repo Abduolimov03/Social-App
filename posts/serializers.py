@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Post, PostMedia, PostLike, Comment
+from rest_framework import serializers
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
@@ -65,3 +66,42 @@ class PostListSerializer(serializers.ModelSerializer):
         return obj.comments.count()
 
 
+class CommentCreateSerializer(serializers.ModelSerializer):
+    post_id = serializers.IntegerField(write_only=True)
+    parent_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ['post_id', 'parent_id', 'text']
+
+    def validate(self, attrs):
+        # Post mavjudligini tekshiramiz
+        try:
+            post = Post.objects.get(id=attrs['post_id'])
+        except Post.DoesNotExist:
+            raise serializers.ValidationError("Post topilmadi")
+
+        parent_id = attrs.get('parent_id')
+        if parent_id:
+            parent = Comment.objects.filter(id=parent_id, post=post).first()
+            if not parent:
+                raise serializers.ValidationError("Parent comment noto‘g‘ri")
+
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        post = Post.objects.get(id=validated_data['post_id'])
+
+        parent = None
+        parent_id = validated_data.get('parent_id')
+        if parent_id:
+            parent = Comment.objects.get(id=parent_id)
+
+        comment = Comment.objects.create(
+            user=user,
+            post=post,
+            text=validated_data['text'],
+            parent=parent
+        )
+        return comment

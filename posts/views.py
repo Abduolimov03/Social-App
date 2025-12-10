@@ -3,10 +3,12 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from .serializers import PostCreateSerializer
 from rest_framework.generics import ListAPIView
-from rest_framework import permissions
 from .models import Post
 from .serializers import PostListSerializer
 from .models import  PostLike
+from .serializers import CommentCreateSerializer
+
+
 
 
 class PostCreateApi(APIView):
@@ -59,3 +61,25 @@ class PostLikeToggleApi(APIView):
         else:
             PostLike.objects.create(post=post, user=user)
             return Response({"liked": True, "message": "Liked"}, status=201)
+
+
+
+class CommentCreateApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = CommentCreateSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        comment = serializer.save()
+
+        return Response(
+            {
+                "message": "Comment created",
+                "comment_id": comment.id
+            },
+            status=status.HTTP_201_CREATED
+        )
+
