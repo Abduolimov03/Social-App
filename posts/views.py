@@ -2,17 +2,18 @@ from django.db.migrations import serializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, request
-from notifications.utils import create_notification
 from .serializers import PostCreateSerializer, CommentListSerializer
-from rest_framework.generics import ListAPIView
 from .models import Post, Comment, CommentLike
-from .serializers import PostListSerializer
 from .models import  PostLike
 from .serializers import CommentCreateSerializer
 from .pagination import CommentPagination
 from rest_framework.exceptions import PermissionDenied
 from notifications.utils import create_notification
-
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
+from .serializers import PostListSerializer
+from users.models import UserFollow
+from .models import SavedPost
 
 class PostCreateApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -189,3 +190,37 @@ class CommentLikeToggleApi(APIView):
             return Response({"liked": True}, status=201)
 
 
+
+
+
+class FeedApi(ListAPIView):
+    serializer_class = PostListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Faqat follow qilganlar postlari
+        following_ids = user.following.values_list('following_id', flat=True)
+        return Post.objects.filter(user_id__in=following_ids, is_active=True).order_by('-created_at')
+
+
+
+
+
+class PostBookmarkToggleApi(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, post_id):
+        user = request.user
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({"error": "Post topilmadi"}, status=404)
+
+        saved = SavedPost.objects.filter(user=user, post=post).first()
+        if saved:
+            saved.delete()
+            return Response({"saved": False}, status=200)
+        else:
+            SavedPost.objects.create(user=user, post=post)
+            return Response({"saved": True}, status=201)

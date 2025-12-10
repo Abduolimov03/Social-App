@@ -1,11 +1,13 @@
 import random
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import FileExtensionValidator
 from shared.models import BaseModel
 from datetime import datetime, timedelta
 import uuid
+from django.db import models
+from django.conf import settings
+
 
 # Constants
 ORDINARY_USER, MANAGER, ADMIN = ('ordinary_user', 'manager', 'admin')
@@ -121,3 +123,23 @@ class CodeVerified(BaseModel):
             self.expiration_time = datetime.now() + timedelta(minutes=EXPIRATION_PHONE)
 
         super(CodeVerified, self).save(*args, **kwargs)
+
+
+class UserFollow(BaseModel):
+    follower = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='following'
+    )
+    following = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='followers'
+    )
+
+    class Meta:
+        unique_together = ('follower', 'following')
+
+    def __str__(self):
+        return f"{self.follower.username} -> {self.following.username}"
+
