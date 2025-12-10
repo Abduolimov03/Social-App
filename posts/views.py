@@ -2,18 +2,13 @@ from django.db.migrations import serializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, request
-from .serializers import PostCreateSerializer, CommentListSerializer
-from .models import Post, Comment, CommentLike
-from .models import  PostLike
-from .serializers import CommentCreateSerializer
+from .serializers import PostCreateSerializer, CommentListSerializer, PostListSerializer, CommentCreateSerializer
+from .models import Post, Comment, CommentLike, PostLike, SavedPost
 from .pagination import CommentPagination
 from rest_framework.exceptions import PermissionDenied
 from notifications.utils import create_notification
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
-from .serializers import PostListSerializer
-from users.models import UserFollow
-from .models import SavedPost
 
 class PostCreateApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
