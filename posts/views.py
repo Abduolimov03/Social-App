@@ -1,6 +1,8 @@
+from django.db.migrations import serializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, request
+from notifications.utils import create_notification
 from .serializers import PostCreateSerializer, CommentListSerializer
 from rest_framework.generics import ListAPIView
 from .models import Post, Comment, CommentLike
@@ -9,11 +11,7 @@ from .models import  PostLike
 from .serializers import CommentCreateSerializer
 from .pagination import CommentPagination
 from rest_framework.exceptions import PermissionDenied
-
-
-
-
-
+from notifications.utils import create_notification
 
 
 class PostCreateApi(APIView):
@@ -29,6 +27,11 @@ class PostCreateApi(APIView):
             "post_id": post.id
         }, status=status.HTTP_201_CREATED)
 
+    post = serializer.save()
+
+    from notifications.utils import create_mentions
+    if post.caption:
+        create_mentions(sender=request.user, text=post.caption, post=post)
 
 
 class PostListApi(ListAPIView):
@@ -60,13 +63,21 @@ class PostLikeToggleApi(APIView):
 
         like_obj = PostLike.objects.filter(post=post, user=user).first()
 
+
+        # Like qilingan joyda
         if like_obj:
             like_obj.delete()
             return Response({"liked": False, "message": "Unliked"}, status=200)
         else:
             PostLike.objects.create(post=post, user=user)
+            create_notification(
+                sender=user,
+                recipient=post.user,
+                notif_type='like',
+                post=post,
+                message=f"{user.username} sizning postingizni like qildi"
+            )
             return Response({"liked": True, "message": "Liked"}, status=201)
-
 
 
 class CommentCreateApi(APIView):
@@ -92,6 +103,17 @@ class CommentCreateApi(APIView):
     serializer_class = CommentListSerializer
     permission_classes = [permissions.AllowAny]
 
+    comment = serializer.save()
+
+    create_notification(
+        sender=request.user,
+        recipient=comment.post.user,
+        notif_type='comment',
+        post=comment.post,
+        comment=comment,
+        message=f"{request.user.username} sizning postingizga comment qoldirdi"
+    )
+
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')
         return (
@@ -101,6 +123,13 @@ class CommentCreateApi(APIView):
             .prefetch_related('replies')
             .order_by('created_at')
         )
+
+
+    # Post egasiga comment notification
+
+    # Mention notification
+    from notifications.utils import create_mentions
+    create_mentions(sender=request.user, text=comment.text, post=comment.post, comment=comment)
 
 
 
@@ -158,3 +187,5 @@ class CommentLikeToggleApi(APIView):
         else:
             CommentLike.objects.create(comment=comment, user=user)
             return Response({"liked": True}, status=201)
+
+
