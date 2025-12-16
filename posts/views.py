@@ -121,9 +121,7 @@ class CommentCreateApi(APIView):
         )
 
 
-    # Post egasiga comment notification
 
-    # Mention notification
     from notifications.utils import create_mentions
     create_mentions(sender=request.user, text=comment.text, post=comment.post, comment=comment)
 
